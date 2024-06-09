@@ -1,0 +1,7 @@
+# Python
+__pycache__/
+credentials.json
+app.log
+
+/data
+settings.py

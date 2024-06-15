@@ -7,8 +7,9 @@ The Finance Manager project is designed to help you efficiently manage and track
 ## Features
 
 - Monthly finance tracking
-- Categorization of transactions
-- Export data to Google Sheets
+- "Smart" categorization of transactions by expense category and payment method
+- Automatic export to Google Sheets to persist the data on the cloud
+- Add new keywords for expense categorization while is running 
 - Report generation (work in progress)
 - Visualization of financial data (work in progress)
 

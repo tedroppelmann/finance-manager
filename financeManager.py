@@ -11,14 +11,21 @@ logger = get_logger(__name__)
 
 class FinanceManager:
 
-	def __init__(self):
+	def __init__(self, payment_methods_path : str, keywords_path : str, bank_statement_path : str):
+		self.payment_methods_path = payment_methods_path
+		self.keywords_path = keywords_path
+		self.bank_statement_path = bank_statement_path
+
 		self.transactions : List[Transaction] = []
 		self.categories : List[Category] = []
 		self.payment_methods : List[PaymentMethod] = []
 
-	def add_transactions(self, source_file : str, month : str, year : str):
+	def add_transactions(self, month : str, year : str):
+		"""
+		Reads the transactions from the bank statement file and adds them to the transactions list.
+		"""
 		logger.info("Reading transactions from file.")
-		with open(source_file, "r", encoding="latin1") as file:
+		with open(self.bank_statement_path, "r", encoding="latin1") as file:
 			csv_reader = csv.reader(file, delimiter=";")
 			next(csv_reader, None) # Skip the header
 			for row in csv_reader:
@@ -36,18 +43,24 @@ class FinanceManager:
 					logger.error(f"Error processing row: {row} - {e}")
 		logger.info(f"Read {len(self.transactions)} transactions.")
 
-	def add_payment_methods(self, keywords_file : str):
+	def add_payment_methods(self):
+		"""
+		Reads the payment methods from the keywords file and adds them to the payment_methods list.
+		"""
 		logger.info("Reading payment methods from file.")
-		with open(keywords_file, "r") as file:
+		with open(self.keywords_path, "r") as file:
 			csv_reader = csv.reader(file, delimiter=",")
 			for row in csv_reader:
 				if row:
 					payment_method = PaymentMethod(row[0], row[1:])
 					self.payment_methods.append(payment_method)
 
-	def add_categories(self, keywords_file : str):
+	def add_categories(self):
+		"""
+		Reads the categories from the keywords file and adds them to the categories list.
+		"""
 		logger.info("Reading categories from file.")
-		with open(keywords_file, "r") as file:
+		with open(self.keywords_path, "r") as file:
 			csv_reader = csv.reader(file, delimiter=",")
 			for row in csv_reader:
 				if row:
@@ -55,18 +68,28 @@ class FinanceManager:
 					self.categories.append(category)
 
 	def update_transactions(self):
+		"""
+		Updates the payment method and category of each transaction based on the keywords.
+		"""
 		logger.info("Updating transactions.")
 		for transaction in self.transactions:
 			transaction.update_payment_method(self.payment_methods)
 			transaction.update_category(self.categories)
 
 	def check_unknown_categories(self):
+		"""
+		Checks if there are any transactions with unknown categories and updates them manually.
+		"""
 		logger.info("Checking for unknown categories.")
 		for transaction in self.transactions:
 			if transaction.category == "Unknown":
 				transaction.update_category_manually(self.categories)
+		self.__update_keywords_csv()
 
 	def update_google_sheet(self, credentials_file : str, month : str, year : str):
+		"""
+		Updates the Google Sheet with the transactions for the specified month and year.
+		"""
 		logger.info(f"Updating Google Sheet for {month}-{year}.")
 		try:
 			service = SheetsConnection(credentials_file)
@@ -75,14 +98,20 @@ class FinanceManager:
 		except Exception as e:
 			logger.error(f"An error occurred while updating the Google Sheet: {e}")
 
-	def update_keywords_csv(self, keywords_file : str):
+	def __update_keywords_csv(self):
+		"""
+		Updates the keywords CSV file with the new categories added manually.
+		"""
 		logger.info("Updating keywords CSV file.")
-		with open(keywords_file, "w", newline="") as file:
+		with open(self.keywords_path, "w", newline="") as file:
 			csv_writer = csv.writer(file, delimiter=",")
 			for category in self.categories:
 				csv_writer.writerow([category.name] + category.keywords)
 
 	def save_to_csv(self, output_file : str):
+		"""
+		Saves the clean transactions to a CSV file.
+		"""
 		logger.info(f"Saving transactions to CSV file: {output_file}")
 		with open(output_file, "w", newline="") as file:
 			csv_writer = csv.writer(file, delimiter=";")

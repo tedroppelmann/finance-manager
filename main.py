@@ -10,14 +10,22 @@ if __name__ == "__main__":
     logger = get_logger(__name__)
     logger.info("Starting finance manager.")
 
-    finance_manager = FinanceManager()
-    finance_manager.add_payment_methods(settings.PAYMENT_METHODS_PATH)
-    finance_manager.add_categories(settings.KEYWORDS_PATH)
-    finance_manager.add_transactions(settings.BANK_STATEMENT_PATH, MONTH, YEAR)
+    finance_manager = FinanceManager(settings.PAYMENT_METHODS_PATH, settings.KEYWORDS_PATH, settings.BANK_STATEMENT_PATH)
+
+    # Set the payment methods, categories and transactions
+    finance_manager.add_payment_methods()
+    finance_manager.add_categories()
+    finance_manager.add_transactions(MONTH, YEAR)
+
+    # Update the payment methods and categories of the transactions based on the keywords
     finance_manager.update_transactions()
-    # finance_manager.check_unknown_categories()
-    # finance_manager.update_keywords_csv(settings.KEYWORDS_PATH)
+
+    # Check for unknown categories (comment this line if you don't want to update the categories manually)
+    finance_manager.check_unknown_categories()
+
+    # Export the transactions to a CSV file and update the Google Sheet (comment this line if you don't want export 
+    # the transactions to a CSV file or update the Google Sheet)
     finance_manager.save_to_csv("output.csv")
-    # finance_manager.update_google_sheet(settings.CREDENTIALS_PATH, MONTH, YEAR)
+    finance_manager.update_google_sheet(settings.CREDENTIALS_PATH, MONTH, YEAR)
 
     logger.info("Finance manager finished.")

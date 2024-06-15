@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 
 class FinanceManager:
 
-	def __init__(self, payment_methods_path : str, keywords_path : str, bank_statement_path : str):
+	def __init__(self, bank_statement_path : str, payment_methods_path : str = None, keywords_path : str = None):
 		self.payment_methods_path = payment_methods_path
 		self.keywords_path = keywords_path
 		self.bank_statement_path = bank_statement_path
@@ -19,6 +19,11 @@ class FinanceManager:
 		self.transactions : List[Transaction] = []
 		self.categories : List[Category] = []
 		self.payment_methods : List[PaymentMethod] = []
+
+		if payment_methods_path:
+			self.__add_payment_methods()
+		if keywords_path:
+			self.__add_categories()
 
 	def add_transactions(self, month : str, year : str):
 		"""
@@ -43,7 +48,10 @@ class FinanceManager:
 					logger.error(f"Error processing row: {row} - {e}")
 		logger.info(f"Read {len(self.transactions)} transactions.")
 
-	def add_payment_methods(self):
+		if self.keywords_path or self.payment_methods_path:
+			self.__update_transactions()
+
+	def __add_payment_methods(self):
 		"""
 		Reads the payment methods from the keywords file and adds them to the payment_methods list.
 		"""
@@ -55,7 +63,7 @@ class FinanceManager:
 					payment_method = PaymentMethod(row[0], row[1:])
 					self.payment_methods.append(payment_method)
 
-	def add_categories(self):
+	def __add_categories(self):
 		"""
 		Reads the categories from the keywords file and adds them to the categories list.
 		"""
@@ -67,7 +75,7 @@ class FinanceManager:
 					category = Category(row[0], row[1:])
 					self.categories.append(category)
 
-	def update_transactions(self):
+	def __update_transactions(self):
 		"""
 		Updates the payment method and category of each transaction based on the keywords.
 		"""

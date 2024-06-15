@@ -10,15 +10,10 @@ if __name__ == "__main__":
     logger = get_logger(__name__)
     logger.info("Starting finance manager.")
 
-    finance_manager = FinanceManager(settings.PAYMENT_METHODS_PATH, settings.KEYWORDS_PATH, settings.BANK_STATEMENT_PATH)
+    finance_manager = FinanceManager(settings.BANK_STATEMENT_PATH, settings.PAYMENT_METHODS_PATH, settings.KEYWORDS_PATH)
 
-    # Set the payment methods, categories and transactions
-    finance_manager.add_payment_methods()
-    finance_manager.add_categories()
+    # Set the transactions
     finance_manager.add_transactions(MONTH, YEAR)
-
-    # Update the payment methods and categories of the transactions based on the keywords
-    finance_manager.update_transactions()
 
     # Check for unknown categories (comment this line if you don't want to update the categories manually)
     finance_manager.check_unknown_categories()

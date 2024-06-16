@@ -43,18 +43,22 @@ class Transaction:
 		print("Choose a category from the list:")
 		for i, category in enumerate(categories):
 			print(f"{i+1}. {category.name}")
+		has_new_keyword = False
 		while True:
-			choice = input("Enter the number of the category (Press Enter to keep it Unknown): ")
+			choice = input("Enter the number of the category (Press Enter to keep it Unknown or write 'SKIP ALL' to finish the manual check): ")
 			if choice.isdigit() and 1 <= int(choice) <= len(categories):
 				self.category = categories[int(choice)-1].name
-				self.add_keyword_manually(categories, choice)
+				has_new_keyword = self.add_keyword_manually(categories, choice)
 				break
+			elif choice == "SKIP ALL":
+				return
 			elif not choice:
 				break
 			else:
 				print("Invalid choice. Category not updated.")
 		logger.info(f"Transaction categorized as {self.category} manually.")
 		time.sleep(1)
+		return has_new_keyword
 	
 	def add_keyword_manually(self, categories : List[Category], choice : str):
 		"""
@@ -65,4 +69,5 @@ class Transaction:
 			keyword = keyword.upper()
 			categories[int(choice)-1].add_keyword(keyword)
 			logger.info(f"Keyword '{keyword}' added to category '{categories[int(choice)-1].name}'.")
-
+			return True
+		return False

@@ -1,4 +1,5 @@
 import csv
+import json
 from typing import List
 from category import Category
 from paymentMethod import PaymentMethod
@@ -11,8 +12,7 @@ logger = get_logger(__name__)
 
 class FinanceManager:
 
-	def __init__(self, bank_statement_path : str, payment_methods_path : str = None, keywords_path : str = None):
-		self.payment_methods_path = payment_methods_path
+	def __init__(self, bank_statement_path : str, keywords_path : str = None):
 		self.keywords_path = keywords_path
 		self.bank_statement_path = bank_statement_path
 
@@ -20,10 +20,24 @@ class FinanceManager:
 		self.categories : List[Category] = []
 		self.payment_methods : List[PaymentMethod] = []
 
-		if payment_methods_path:
-			self.__add_payment_methods()
 		if keywords_path:
-			self.__add_categories()
+			self.__load_keywords()
+
+	def __load_keywords(self):
+		"""
+		Loads the categories and payment methods from a JSON file.
+		"""
+		logger.info(f"Loading JSON file: {self.keywords_path}")
+		with open(self.keywords_path, "r") as file:
+			data = json.load(file)
+			categories = data["categories"]
+			payment_methods = data["payment_methods"]
+			for category, keywords in categories.items():
+				category_obj = Category(category, keywords)
+				self.categories.append(category_obj)
+			for payment_method, keywords in payment_methods.items():
+				payment_method_obj = PaymentMethod(payment_method, keywords)
+				self.payment_methods.append(payment_method_obj)
 
 	def add_transactions(self, month : str, year : str):
 		"""
@@ -48,38 +62,14 @@ class FinanceManager:
 					logger.error(f"Error processing row: {row} - {e}")
 		logger.info(f"Read {len(self.transactions)} transactions.")
 
-		if self.keywords_path or self.payment_methods_path:
+		if self.keywords_path:
 			self.__update_transactions()
-
-	def __add_payment_methods(self):
-		"""
-		Reads the payment methods from the keywords file and adds them to the payment_methods list.
-		"""
-		logger.info("Reading payment methods from file.")
-		with open(self.keywords_path, "r") as file:
-			csv_reader = csv.reader(file, delimiter=",")
-			for row in csv_reader:
-				if row:
-					payment_method = PaymentMethod(row[0], row[1:])
-					self.payment_methods.append(payment_method)
-
-	def __add_categories(self):
-		"""
-		Reads the categories from the keywords file and adds them to the categories list.
-		"""
-		logger.info("Reading categories from file.")
-		with open(self.keywords_path, "r") as file:
-			csv_reader = csv.reader(file, delimiter=",")
-			for row in csv_reader:
-				if row:
-					category = Category(row[0], row[1:])
-					self.categories.append(category)
 
 	def __update_transactions(self):
 		"""
 		Updates the payment method and category of each transaction based on the keywords.
 		"""
-		logger.info("Updating transactions.")
+		logger.info("Updating transactions with keywords from JSON file.")
 		for transaction in self.transactions:
 			transaction.update_payment_method(self.payment_methods)
 			transaction.update_category(self.categories)
@@ -91,8 +81,12 @@ class FinanceManager:
 		logger.info("Checking for unknown categories.")
 		for transaction in self.transactions:
 			if transaction.category == "Unknown":
-				transaction.update_category_manually(self.categories)
-		self.__update_keywords_csv()
+				has_new_keyword = transaction.update_category_manually(self.categories)
+				if has_new_keyword is True:
+					self.__update_transactions()
+				elif has_new_keyword is None:
+					break
+		self.__update_keywords_json()
 
 	def update_google_sheet(self, credentials_file : str, month : str, year : str):
 		"""
@@ -106,15 +100,19 @@ class FinanceManager:
 		except Exception as e:
 			logger.error(f"An error occurred while updating the Google Sheet: {e}")
 
-	def __update_keywords_csv(self):
+	def __update_keywords_json(self):
 		"""
-		Updates the keywords CSV file with the new categories added manually.
+		Updates the keywords JSON file with the new categories added manually.
 		"""
-		logger.info("Updating keywords CSV file.")
-		with open(self.keywords_path, "w", newline="") as file:
-			csv_writer = csv.writer(file, delimiter=",")
-			for category in self.categories:
-				csv_writer.writerow([category.name] + category.keywords)
+		logger.info("Updating category keywords in JSON file.")
+		with open(self.keywords_path, "r") as jsonFile:
+			data = json.load(jsonFile)
+
+		for category in self.categories:
+			data["categories"][category.name] = category.keywords
+			
+		with open(self.keywords_path, "w") as jsonFile:
+			json.dump(data, jsonFile, indent=4)
 
 	def save_to_csv(self, output_file : str):
 		"""
